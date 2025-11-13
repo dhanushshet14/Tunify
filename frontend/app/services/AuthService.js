@@ -74,4 +74,15 @@ angular.module('spotifyApp')
         return self.currentUser;
       });
     };
+
+    self.getProfile = function() {
+      if (!self.token) {
+        return $q.reject('Not authenticated');
+      }
+      return $http.get(API_URL + '/auth/profile', {
+        headers: { Authorization: 'Bearer ' + self.token }
+      }).then(function(response) {
+        return response.data;
+      });
+    };
   }]);

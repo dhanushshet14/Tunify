@@ -1,34 +1,73 @@
 <div class="search-container">
-  <h2>Search</h2>
-  
-  <div class="search-box">
-    <input type="text" 
-           ng-model="search.query" 
-           ng-change="search.search()" 
-           placeholder="Search for songs, artists, albums..."
-           class="search-input">
+  <div class="search-header">
+    <h2>Search</h2>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" 
+             ng-model="search.query" 
+             ng-change="search.search()" 
+             placeholder="Search for songs, artists, albums..."
+             class="search-input"
+             autofocus>
+    </div>
+  </div>
+
+  <!-- Tab Filters -->
+  <div class="search-tabs" ng-if="search.query && (search.localResults.length > 0 || search.audiusResults.length > 0)">
+    <button ng-click="search.switchTab('all')" 
+            ng-class="{'active': search.activeTab === 'all'}"
+            class="tab-btn">
+      All ({{search.localResults.length + search.audiusResults.length}})
+    </button>
+    <button ng-click="search.switchTab('local')" 
+            ng-class="{'active': search.activeTab === 'local'}"
+            class="tab-btn">
+      My Music ({{search.localResults.length}})
+    </button>
+    <button ng-click="search.switchTab('audius')" 
+            ng-class="{'active': search.activeTab === 'audius'}"
+            class="tab-btn">
+      Audius ({{search.audiusResults.length}})
+    </button>
   </div>
   
-  <div class="loading" ng-if="search.searching">Searching...</div>
+  <div class="loading" ng-if="search.searching">
+    <div class="spinner"></div>
+    <p>Searching...</p>
+  </div>
   
-  <div class="search-results" ng-if="!search.searching && search.results.length > 0">
-    <div class="song-list">
-      <div class="song-item" ng-repeat="song in search.results">
-        <img ng-src="{{song.coverUrl}}" alt="{{song.title}}">
-        <div class="song-details">
-          <h4>{{song.title}}</h4>
-          <p>{{song.artist}} • {{song.album}}</p>
+  <div class="search-results" ng-if="!search.searching && search.getFilteredResults().length > 0">
+    <div class="spotify-grid">
+      <div class="spotify-card" ng-repeat="song in search.getFilteredResults()">
+        <div class="card-image-container">
+          <img ng-src="{{song.coverUrl}}" alt="{{song.title}}" class="card-image">
+          <div class="card-overlay">
+            <button ng-click="search.playSong(song, $index)" class="play-button-large">
+              <span class="play-icon-large">▶</span>
+            </button>
+          </div>
         </div>
-        <div class="song-duration">{{song.duration | number:0}}s</div>
-        <div class="song-actions">
-          <button ng-click="search.playSong(song, $index)" class="btn-play">▶</button>
-          <button ng-click="search.addToQueue(song)" class="btn-queue">+</button>
+        <div class="card-content">
+          <h4 class="card-title" title="{{song.title}}">{{song.title}}</h4>
+          <p class="card-artist" title="{{song.artist}}">{{song.artist}}</p>
+          <div class="card-meta">
+            <span class="card-source">{{song.isAudius ? '🌐 Audius' : '💿 My Music'}}</span>
+            <span class="card-duration">{{search.formatDuration(song.duration)}}</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
   
-  <div class="no-results" ng-if="!search.searching && search.query && search.results.length === 0">
-    No results found for "{{search.query}}"
+  <div class="empty-state" ng-if="!search.searching && search.query && search.getFilteredResults().length === 0">
+    <div class="empty-icon">🔍</div>
+    <h3>No results found</h3>
+    <p>Try searching for something else</p>
+  </div>
+
+  <div class="empty-state" ng-if="!search.query">
+    <div class="empty-icon">🎵</div>
+    <h3>Search for music</h3>
+    <p>Find songs, artists, and albums</p>
   </div>
 </div>

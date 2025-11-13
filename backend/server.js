@@ -30,28 +30,77 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// MongoDB Connection
+// Add comprehensive request logger
+const logger = require('./middleware/logger');
+app.use(logger);
+
+// MongoDB Connection with detailed logging
+console.log('\n🔌 ========== MONGODB CONNECTION ==========');
+console.log('URI:', process.env.MONGODB_URI ? '✓ Set' : '✗ Missing');
+console.log('Attempting connection...');
+
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => {
+  console.log('✅ MongoDB connected successfully');
+  console.log('Database:', mongoose.connection.name);
+  console.log('Host:', mongoose.connection.host);
+  console.log('==========================================\n');
+})
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  console.error('Stack:', err.stack);
+  console.error('==========================================\n');
+  process.exit(1);
+});
 
-// Socket.IO
+// MongoDB connection events
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️ MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('✅ MongoDB reconnected');
+});
+
+// Socket.IO with detailed logging
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  console.log('\n🔌 ========== SOCKET CONNECTION ==========');
+  console.log('Socket ID:', socket.id);
+  console.log('Client IP:', socket.handshake.address);
+  console.log('Time:', new Date().toISOString());
+  console.log('=========================================\n');
 
   socket.on('join-playlist', (playlistId) => {
+    console.log(`📝 Socket ${socket.id} joined playlist: ${playlistId}`);
     socket.join(`playlist-${playlistId}`);
   });
 
   socket.on('leave-playlist', (playlistId) => {
+    console.log(`📤 Socket ${socket.id} left playlist: ${playlistId}`);
     socket.leave(`playlist-${playlistId}`);
   });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+  socket.on('disconnect', (reason) => {
+    console.log('\n❌ ========== SOCKET DISCONNECT ==========');
+    console.log('Socket ID:', socket.id);
+    console.log('Reason:', reason);
+    console.log('Time:', new Date().toISOString());
+    console.log('==========================================\n');
+  });
+  
+  socket.on('error', (error) => {
+    console.error('\n❌ ========== SOCKET ERROR ==========');
+    console.error('Socket ID:', socket.id);
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    console.error('=====================================\n');
   });
 });
 
@@ -71,5 +120,27 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
+  console.log('\n✅ ========== SERVER READY ==========');
   console.log(`Server running on port ${PORT}`);
+  console.log(`Frontend URL: http://localhost:8080`);
+  console.log(`Backend URL: http://localhost:${PORT}`);
+  console.log(`Time: ${new Date().toISOString()}`);
+  console.log('====================================\n');
+});
+
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('\n❌ ========== UNHANDLED REJECTION ==========');
+  console.error('Reason:', reason);
+  console.error('Promise:', promise);
+  console.error('Stack:', reason?.stack);
+  console.error('===========================================\n');
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('\n❌ ========== UNCAUGHT EXCEPTION ==========');
+  console.error('Error:', error);
+  console.error('Stack:', error.stack);
+  console.error('==========================================\n');
+  process.exit(1);
 });

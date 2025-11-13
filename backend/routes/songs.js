@@ -78,12 +78,23 @@ router.post('/upload', auth, upload.fields([
 
 // Get all songs
 router.get('/all', auth, async (req, res) => {
+  console.log('\n📚 ========== GET ALL SONGS ==========');
+  console.log('User ID:', req.userId);
+  console.log('Time:', new Date().toISOString());
+  
   try {
+    console.log('🔍 Fetching all songs...');
     const songs = await Song.find()
       .populate('uploadedBy', 'username')
       .sort({ createdAt: -1 });
+    
+    console.log(`✅ Found ${songs.length} songs`);
+    console.log('======================================\n');
     res.json(songs);
   } catch (error) {
+    console.error('❌ Get all songs error:', error);
+    console.error('Stack:', error.stack);
+    console.error('======================================\n');
     res.status(500).json({ error: error.message });
   }
 });
@@ -104,12 +115,21 @@ router.get('/:id', auth, async (req, res) => {
 
 // Search songs
 router.get('/search', auth, async (req, res) => {
+  const startTime = Date.now();
+  console.log('\n🔍 ========== SEARCH REQUEST ==========');
+  console.log('Query:', req.query.q);
+  console.log('User ID:', req.userId);
+  console.log('Time:', new Date().toISOString());
+  
   try {
     const { q } = req.query;
     if (!q) {
+      console.log('⚠️ Empty search query');
+      console.log('======================================\n');
       return res.json([]);
     }
 
+    console.log('🔎 Searching database...');
     const songs = await Song.find({
       $or: [
         { title: { $regex: q, $options: 'i' } },
@@ -119,8 +139,15 @@ router.get('/search', auth, async (req, res) => {
       ]
     }).populate('uploadedBy', 'username').limit(20);
 
+    const duration = Date.now() - startTime;
+    console.log(`✅ Found ${songs.length} results in ${duration}ms`);
+    console.log('======================================\n');
+
     res.json(songs);
   } catch (error) {
+    console.error('❌ Search error:', error);
+    console.error('Stack:', error.stack);
+    console.error('======================================\n');
     res.status(500).json({ error: error.message });
   }
 });
@@ -135,6 +162,44 @@ router.post('/:id/play', auth, async (req, res) => {
     );
     res.json(song);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete song (only by uploader)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const song = await Song.findById(req.params.id);
+    
+    if (!song) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    // Check if user is the uploader
+    if (song.uploadedBy.toString() !== req.userId.toString()) {
+      return res.status(403).json({ error: 'Not authorized to delete this song' });
+    }
+
+    // Delete file from uploads directory
+    const audioPath = path.join(__dirname, '../../uploads', path.basename(song.audioUrl));
+    if (fs.existsSync(audioPath)) {
+      fs.unlinkSync(audioPath);
+    }
+
+    // Delete cover image if exists
+    if (song.coverUrl && !song.coverUrl.includes('default')) {
+      const coverPath = path.join(__dirname, '../../uploads', path.basename(song.coverUrl));
+      if (fs.existsSync(coverPath)) {
+        fs.unlinkSync(coverPath);
+      }
+    }
+
+    // Delete from database
+    await Song.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Song deleted successfully' });
+  } catch (error) {
+    console.error('Delete song error:', error);
     res.status(500).json({ error: error.message });
   }
 });

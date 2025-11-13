@@ -33,6 +33,11 @@ angular.module('spotifyApp')
       return $http.post(API_URL + '/songs/' + id + '/play', {}, { headers: getHeaders() });
     };
 
+    self.deleteSong = function(id) {
+      return $http.delete(API_URL + '/songs/' + id, { headers: getHeaders() })
+        .then(function(response) { return response.data; });
+    };
+
     self.getStreamUrl = function(audioUrl) {
       return 'http://localhost:5000' + audioUrl.replace('/uploads/', '/api/stream/');
     };

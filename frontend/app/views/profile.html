@@ -1,0 +1,66 @@
+<div class="profile-container">
+  <div class="loading" ng-if="profile.loading">
+    <div class="spinner"></div>
+    <p>Loading profile...</p>
+  </div>
+
+  <div class="profile-content" ng-if="!profile.loading && profile.user">
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <div class="profile-avatar">
+        <div class="avatar-circle">
+          <span class="avatar-initial">{{profile.user.username.charAt(0).toUpperCase()}}</span>
+        </div>
+      </div>
+      <div class="profile-info">
+        <h1 class="profile-name" ng-if="!profile.editing">{{profile.user.username}}</h1>
+        <input type="text" 
+               ng-if="profile.editing" 
+               ng-model="profile.editData.username" 
+               class="profile-edit-input">
+        <p class="profile-email">{{profile.user.email}}</p>
+        <p class="profile-joined">Member since {{profile.formatDate(profile.user.createdAt)}}</p>
+        <button ng-click="profile.toggleEdit()" class="btn-edit" ng-if="!profile.editing">
+          ✏️ Edit Profile
+        </button>
+        <div ng-if="profile.editing" class="edit-actions">
+          <button ng-click="profile.saveProfile()" class="btn-save">Save</button>
+          <button ng-click="profile.toggleEdit()" class="btn-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Stats -->
+    <div class="profile-stats">
+      <div class="stat-card">
+        <div class="stat-icon">🎵</div>
+        <div class="stat-value">{{profile.stats.totalSongs}}</div>
+        <div class="stat-label">Songs Uploaded</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-value">{{profile.stats.totalPlaylists}}</div>
+        <div class="stat-label">Playlists Created</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="profile-actions">
+      <h3>Quick Actions</h3>
+      <div class="action-buttons">
+        <a href="#!/upload" class="action-btn">
+          <span class="action-icon">📤</span>
+          <span>Upload Music</span>
+        </a>
+        <a href="#!/library" class="action-btn">
+          <span class="action-icon">📚</span>
+          <span>My Library</span>
+        </a>
+        <a href="#!/search" class="action-btn">
+          <span class="action-icon">🔍</span>
+          <span>Search Music</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -46,6 +46,12 @@ angular.module('spotifyApp', ['ngRoute'])
         controllerAs: 'playlist',
         requireAuth: true
       })
+      .when('/profile', {
+        templateUrl: 'app/views/profile.html',
+        controller: 'ProfileController',
+        controllerAs: 'profile',
+        requireAuth: true
+      })
       .otherwise({
         redirectTo: '/'
       });

@@ -1,5 +1,5 @@
 angular.module('spotifyApp')
-  .service('PlayerService', ['$rootScope', 'SongService', function($rootScope, SongService) {
+  .service('PlayerService', ['$rootScope', '$timeout', 'SongService', function($rootScope, $timeout, SongService) {
     var self = this;
     self.audio = new Audio();
     self.queue = [];
@@ -12,37 +12,145 @@ angular.module('spotifyApp')
     self.muted = false;
     self.currentTime = 0;
     self.duration = 0;
+    self.buffered = 0;
+    self.loading = false;
+    self.showQueue = false;
 
-    // Initialize
+    // Performance optimization - debounce UI updates
+    var timeUpdateDebounce = null;
+    var isUpdating = false;
+
+    // Initialize audio settings for smooth playback
     self.audio.volume = self.volume / 100;
+    self.audio.preload = 'auto'; // Preload audio for smooth playback
+    self.audio.crossOrigin = 'anonymous'; // Enable CORS
 
-    // Event listeners
+    // Optimized timeupdate - only update every 250ms to prevent jitter
     self.audio.addEventListener('timeupdate', function() {
-      self.currentTime = self.audio.currentTime;
-      $rootScope.$apply();
+      if (!isUpdating) {
+        isUpdating = true;
+        if (timeUpdateDebounce) {
+          $timeout.cancel(timeUpdateDebounce);
+        }
+        timeUpdateDebounce = $timeout(function() {
+          self.currentTime = self.audio.currentTime;
+          self.updateBuffered();
+          isUpdating = false;
+        }, 250);
+      }
+    });
+
+    self.audio.addEventListener('loadstart', function() {
+      console.log('🎵 [AUDIO] loadstart - Starting to load audio');
+      $timeout(function() {
+        self.loading = true;
+      });
     });
 
     self.audio.addEventListener('loadedmetadata', function() {
-      self.duration = self.audio.duration;
-      $rootScope.$apply();
+      console.log('🎵 [AUDIO] loadedmetadata - Duration:', self.audio.duration);
+      $timeout(function() {
+        self.duration = self.audio.duration;
+        self.loading = false;
+      });
+    });
+
+    self.audio.addEventListener('loadeddata', function() {
+      console.log('🎵 [AUDIO] loadeddata - First frame loaded');
+    });
+
+    self.audio.addEventListener('canplay', function() {
+      console.log('🎵 [AUDIO] canplay - Ready to play');
+      $timeout(function() {
+        self.loading = false;
+      });
+    });
+
+    self.audio.addEventListener('canplaythrough', function() {
+      console.log('🎵 [AUDIO] canplaythrough - Can play without buffering');
+    });
+
+    self.audio.addEventListener('waiting', function() {
+      console.log('⏳ [AUDIO] waiting - Buffering...');
+      $timeout(function() {
+        self.loading = true;
+      });
+    });
+
+    self.audio.addEventListener('playing', function() {
+      console.log('▶️ [AUDIO] playing - Playback started');
+      $timeout(function() {
+        self.loading = false;
+      });
     });
 
     self.audio.addEventListener('ended', function() {
-      self.next();
-      $rootScope.$apply();
+      console.log('🏁 [AUDIO] ended - Track finished');
+      $timeout(function() {
+        self.next();
+      });
     });
 
     self.audio.addEventListener('play', function() {
-      self.isPlaying = true;
-      $rootScope.$apply();
+      console.log('▶️ [AUDIO] play event');
+      $timeout(function() {
+        self.isPlaying = true;
+      });
     });
 
     self.audio.addEventListener('pause', function() {
-      self.isPlaying = false;
-      $rootScope.$apply();
+      console.log('⏸️ [AUDIO] pause event');
+      $timeout(function() {
+        self.isPlaying = false;
+      });
     });
 
+    self.audio.addEventListener('seeking', function() {
+      console.log('⏩ [AUDIO] seeking to:', self.audio.currentTime);
+    });
+
+    self.audio.addEventListener('seeked', function() {
+      console.log('✅ [AUDIO] seeked - Seek complete');
+    });
+
+    self.audio.addEventListener('stalled', function() {
+      console.warn('⚠️ [AUDIO] stalled - Network stalled');
+    });
+
+    self.audio.addEventListener('suspend', function() {
+      console.log('⏸️ [AUDIO] suspend - Loading suspended');
+    });
+
+    self.audio.addEventListener('error', function(e) {
+      console.error('❌ [AUDIO] ERROR:', {
+        error: e,
+        code: self.audio.error ? self.audio.error.code : 'unknown',
+        message: self.audio.error ? self.audio.error.message : 'unknown',
+        src: self.audio.src,
+        networkState: self.audio.networkState,
+        readyState: self.audio.readyState
+      });
+      $timeout(function() {
+        self.loading = false;
+        self.isPlaying = false;
+      });
+    });
+
+    // Update buffered ranges
+    self.updateBuffered = function() {
+      if (self.audio.buffered.length > 0 && self.duration > 0) {
+        var bufferedEnd = self.audio.buffered.end(self.audio.buffered.length - 1);
+        self.buffered = (bufferedEnd / self.duration) * 100;
+      }
+    };
+
     self.playSong = function(song, queue, index) {
+      console.log('\n🎵 ========== PLAY SONG ==========');
+      console.log('Song:', song.title, 'by', song.artist);
+      console.log('Queue length:', queue ? queue.length : 1);
+      console.log('Index:', index);
+      console.log('Time:', new Date().toISOString());
+      
       if (queue) {
         self.queue = queue;
         self.currentIndex = index !== undefined ? index : 0;
@@ -52,30 +160,72 @@ angular.module('spotifyApp')
       }
       
       self.currentSong = self.queue[self.currentIndex];
+      self.loading = true;
       
       // Handle Audius tracks differently
       var streamUrl;
       if (self.currentSong.isAudius) {
-        // Audius tracks already have the full stream URL
         streamUrl = self.currentSong.audioUrl;
-        console.log('Playing Audius track:', self.currentSong.title, streamUrl);
+        console.log('🌐 Playing Audius track');
+        console.log('URL:', streamUrl);
       } else {
-        // Local tracks need URL conversion
         streamUrl = SongService.getStreamUrl(self.currentSong.audioUrl);
-        console.log('Playing local track:', self.currentSong.title, streamUrl);
+        console.log('💿 Playing local track');
+        console.log('URL:', streamUrl);
       }
       
-      self.audio.src = streamUrl;
-      self.audio.play().catch(function(error) {
-        console.error('Error playing audio:', error);
-      });
+      // Smooth transition - only change src if different
+      if (self.audio.src !== streamUrl) {
+        console.log('🔄 Changing audio source...');
+        self.audio.src = streamUrl;
+        self.audio.load(); // Preload for smooth playback
+        console.log('✅ Audio source set and loading');
+      } else {
+        console.log('ℹ️ Same source, reusing');
+      }
+      
+      // Play with error handling
+      console.log('▶️ Attempting to play...');
+      var playPromise = self.audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(function() {
+          console.log('✅ Playback started successfully');
+          console.log('==================================\n');
+          self.loading = false;
+        }).catch(function(error) {
+          console.error('❌ Error playing audio:', error);
+          console.error('Error name:', error.name);
+          console.error('Error message:', error.message);
+          console.error('==================================\n');
+          self.loading = false;
+          self.isPlaying = false;
+        });
+      }
       
       // Only increment play count for local tracks
       if (!self.currentSong.isAudius) {
-        SongService.incrementPlayCount(self.currentSong._id);
+        SongService.incrementPlayCount(self.currentSong._id).catch(function(err) {
+          console.log('⚠️ Could not increment play count:', err);
+        });
       }
       
       self.saveState();
+      
+      // Preload next track for seamless playback
+      self.preloadNextTrack();
+    };
+
+    // Preload next track for smooth transitions
+    self.preloadNextTrack = function() {
+      var nextIndex = self.currentIndex + 1;
+      if (nextIndex < self.queue.length) {
+        var nextSong = self.queue[nextIndex];
+        var nextUrl = nextSong.isAudius ? nextSong.audioUrl : SongService.getStreamUrl(nextSong.audioUrl);
+        // Create a temporary audio element to preload
+        var preloader = new Audio();
+        preloader.src = nextUrl;
+        preloader.preload = 'auto';
+      }
     };
 
     self.play = function() {
@@ -163,8 +313,14 @@ angular.module('spotifyApp')
       self.saveState();
     };
 
-    self.seek = function() {
-      self.audio.currentTime = self.currentTime;
+    self.seek = function(time) {
+      if (time !== undefined) {
+        self.currentTime = time;
+      }
+      // Instant seek without reloading
+      if (self.audio.readyState >= 2) { // HAVE_CURRENT_DATA
+        self.audio.currentTime = self.currentTime;
+      }
     };
 
     self.setVolume = function() {

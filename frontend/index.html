@@ -21,7 +21,10 @@
         <a href="#!/upload">Upload</a>
       </div>
       <div class="nav-user">
-        <span>{{main.currentUser.username}}</span>
+        <a href="#!/profile" class="user-profile-link">
+          <span class="user-avatar">{{main.currentUser.username.charAt(0).toUpperCase()}}</span>
+          <span>{{main.currentUser.username}}</span>
+        </a>
         <button ng-click="main.logout()">Logout</button>
       </div>
     </nav>
@@ -112,6 +115,7 @@
   <script src="app/controllers/UploadController.js"></script>
   <script src="app/controllers/PlayerController.js"></script>
   <script src="app/controllers/PlaylistController.js"></script>
+  <script src="app/controllers/ProfileController.js"></script>
   <script src="service-worker.js"></script>
 </body>
 </html>
