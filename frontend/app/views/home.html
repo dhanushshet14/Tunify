@@ -1,0 +1,107 @@
+<div class="home-container">
+  <div class="home-header">
+    <h2>Discover Music</h2>
+    <div class="tab-buttons">
+      <button 
+        ng-click="home.switchTab('trending')" 
+        ng-class="{'active': home.activeTab === 'trending'}"
+        class="tab-btn">
+        🔥 Trending
+      </button>
+      <button 
+        ng-click="home.switchTab('myMusic')" 
+        ng-class="{'active': home.activeTab === 'myMusic'}"
+        class="tab-btn">
+        🎵 My Music
+      </button>
+    </div>
+  </div>
+  
+  <!-- Trending Tracks from Audius -->
+  <section class="section" ng-if="home.activeTab === 'trending'">
+    <div class="section-header">
+      <h3>🔥 Trending on Audius</h3>
+      <p class="section-subtitle">Discover the hottest tracks right now</p>
+    </div>
+    
+    <div class="loading" ng-if="home.loadingAudius">
+      <div class="spinner"></div>
+      <p>Loading trending tracks...</p>
+    </div>
+    
+    <div class="spotify-grid" ng-if="!home.loadingAudius && home.audiusTracks.length > 0">
+      <div class="spotify-card" ng-repeat="track in home.audiusTracks">
+        <div class="card-image-container">
+          <img ng-src="{{track.coverUrl}}" alt="{{track.title}}" class="card-image">
+          <div class="card-overlay">
+            <button ng-click="home.playSong(track, $index)" class="play-button-large">
+              <span class="play-icon-large">▶</span>
+            </button>
+          </div>
+        </div>
+        <div class="card-content">
+          <h4 class="card-title" title="{{track.title}}">{{track.title}}</h4>
+          <p class="card-artist" title="{{track.artist}}">{{track.artist}}</p>
+          <div class="card-meta">
+            <span class="card-plays">▶ {{home.formatPlayCount(track.plays)}}</span>
+            <span class="card-duration">{{home.formatDuration(track.duration)}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="empty-state" ng-if="!home.loadingAudius && home.audiusTracks.length === 0">
+      <p>😔 No trending tracks available</p>
+    </div>
+  </section>
+  
+  <!-- User's Music -->
+  <section class="section" ng-if="home.activeTab === 'myMusic'">
+    <div class="section-header">
+      <h3>🎵 Your Music</h3>
+      <p class="section-subtitle">Songs you've uploaded</p>
+    </div>
+    
+    <div class="loading" ng-if="home.loading">
+      <div class="spinner"></div>
+      <p>Loading your music...</p>
+    </div>
+    
+    <div class="song-grid" ng-if="!home.loading && home.songs.length > 0">
+      <div class="song-card" ng-repeat="song in home.songs">
+        <img ng-src="{{song.coverUrl}}" alt="{{song.title}}">
+        <div class="song-info">
+          <h4>{{song.title}}</h4>
+          <p>{{song.artist}}</p>
+        </div>
+        <div class="song-actions">
+          <button ng-click="home.playSong(song, $index)" class="btn-play">▶</button>
+          <button ng-click="home.addToQueue(song)" class="btn-queue">+</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="empty-state" ng-if="!home.loading && home.songs.length === 0">
+      <div class="empty-icon">🎵</div>
+      <h3>No music yet</h3>
+      <p>Upload your first song to get started!</p>
+      <a href="#!/upload" class="btn-primary">Upload Music</a>
+    </div>
+    
+    <!-- User's Playlists -->
+    <div ng-if="!home.loading && home.playlists.length > 0" style="margin-top: 60px;">
+      <div class="section-header">
+        <h3>📝 Your Playlists</h3>
+      </div>
+      <div class="playlist-grid">
+        <div class="playlist-card" ng-repeat="playlist in home.playlists">
+          <a href="#!/playlist/{{playlist._id}}">
+            <img ng-src="{{playlist.coverUrl}}" alt="{{playlist.title}}">
+            <h4>{{playlist.title}}</h4>
+            <p>{{playlist.songs.length}} songs</p>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

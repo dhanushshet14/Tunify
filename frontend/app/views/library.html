@@ -1,0 +1,35 @@
+<div class="library-container">
+  <div class="library-header">
+    <h2>Your Library</h2>
+    <button ng-click="library.showCreateModal = true" class="btn-primary">Create Playlist</button>
+  </div>
+  
+  <div class="loading" ng-if="library.loading">Loading...</div>
+  
+  <div class="playlist-grid" ng-if="!library.loading">
+    <div class="playlist-card" ng-repeat="playlist in library.playlists" 
+         ng-click="library.openPlaylist(playlist._id)">
+      <img ng-src="{{playlist.coverUrl}}" alt="{{playlist.title}}">
+      <div class="playlist-info">
+        <h4>{{playlist.title}}</h4>
+        <p>{{playlist.songs.length}} songs</p>
+      </div>
+      <button ng-click="library.deletePlaylist(playlist._id, $event)" class="btn-delete">✕</button>
+    </div>
+  </div>
+  
+  <!-- Create Playlist Modal -->
+  <div class="modal" ng-if="library.showCreateModal">
+    <div class="modal-content">
+      <h3>Create New Playlist</h3>
+      <input type="text" 
+             ng-model="library.newPlaylistTitle" 
+             placeholder="Playlist name"
+             class="modal-input">
+      <div class="modal-actions">
+        <button ng-click="library.createPlaylist()" class="btn-primary">Create</button>
+        <button ng-click="library.showCreateModal = false" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

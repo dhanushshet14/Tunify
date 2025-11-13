@@ -1,0 +1,50 @@
+<div class="auth-page">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1 class="auth-logo">🎵 Tunify</h1>
+        <h2 class="auth-title">Log in to your account</h2>
+      </div>
+      
+      <form ng-submit="auth.submitLogin()" class="auth-form">
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input 
+            type="email" 
+            id="email"
+            ng-model="auth.loginData.email" 
+            placeholder="Enter your email"
+            required
+            autocomplete="email">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password"
+            ng-model="auth.loginData.password" 
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password">
+        </div>
+        
+        <div class="error-message" ng-if="auth.loginError">
+          <span>⚠️ {{auth.loginError}}</span>
+        </div>
+        
+        <button type="submit" class="btn-auth btn-primary" ng-disabled="auth.loading">
+          {{auth.loading ? 'Logging in...' : 'Log In'}}
+        </button>
+      </form>
+      
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+      
+      <div class="auth-footer">
+        <p>Don't have an account? <a href="#!/signup" class="auth-link">Sign up</a></p>
+      </div>
+    </div>
+  </div>
+</div>

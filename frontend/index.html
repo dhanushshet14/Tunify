@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html ng-app="spotifyApp">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tunify - Your Music Streaming Platform</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div ng-controller="MainController as main">
+    <!-- Navigation -->
+    <nav class="navbar" ng-if="main.isAuthenticated()">
+      <div class="nav-brand">
+        <h1>🎵 Tunify</h1>
+      </div>
+      <div class="nav-menu">
+        <a href="#!/home">Home</a>
+        <a href="#!/search">Search</a>
+        <a href="#!/library">Library</a>
+        <a href="#!/upload">Upload</a>
+      </div>
+      <div class="nav-user">
+        <span>{{main.currentUser.username}}</span>
+        <button ng-click="main.logout()">Logout</button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-container" ng-class="{'with-player': main.isAuthenticated()}">
+      <div ng-view></div>
+    </div>
+
+    <!-- Player -->
+    <div class="player-container" ng-if="main.isAuthenticated()" ng-controller="PlayerController as player">
+      <div class="player-track-info">
+        <img ng-src="{{player.currentSong.coverUrl}}" alt="Cover" class="player-cover">
+        <div class="player-details">
+          <div class="player-title">{{player.currentSong.title || 'No song playing'}}</div>
+          <div class="player-artist">{{player.currentSong.artist}}</div>
+        </div>
+      </div>
+
+      <div class="player-controls">
+        <div class="player-buttons">
+          <button ng-click="player.toggleShuffle()" ng-class="{'active': player.shuffle}">🔀</button>
+          <button ng-click="player.previous()">⏮</button>
+          <button ng-click="player.togglePlay()" class="play-btn">
+            {{player.isPlaying ? '⏸' : '▶'}}
+          </button>
+          <button ng-click="player.next()">⏭</button>
+          <button ng-click="player.toggleRepeat()" ng-class="{'active': player.repeat !== 'off'}">
+            {{player.repeat === 'one' ? '🔂' : '🔁'}}
+          </button>
+        </div>
+        <div class="player-progress">
+          <span class="time">{{player.formatTime(player.currentTime)}}</span>
+          <input type="range" min="0" max="{{player.duration}}" ng-model="player.currentTime" 
+                 ng-change="player.seek()" class="progress-bar">
+          <span class="time">{{player.formatTime(player.duration)}}</span>
+        </div>
+      </div>
+
+      <div class="player-volume">
+        <button ng-click="player.toggleMute()">{{player.muted ? '🔇' : '🔊'}}</button>
+        <input type="range" min="0" max="100" ng-model="player.volume" 
+               ng-change="player.setVolume()" class="volume-bar">
+        <button ng-click="player.toggleQueue()">📋</button>
+      </div>
+
+      <audio id="audioPlayer"></audio>
+    </div>
+
+    <!-- Queue Panel -->
+    <div class="queue-panel" ng-if="main.isAuthenticated() && player.showQueue" 
+         ng-controller="PlayerController as player">
+      <div class="queue-header">
+        <h3>Queue</h3>
+        <button ng-click="player.toggleQueue()">✕</button>
+      </div>
+      <div class="queue-list">
+        <div class="queue-item" ng-repeat="song in player.queue track by $index"
+             ng-class="{'active': $index === player.currentIndex}">
+          <img ng-src="{{song.coverUrl}}" alt="Cover">
+          <div class="queue-item-info">
+            <div class="queue-item-title">{{song.title}}</div>
+            <div class="queue-item-artist">{{song.artist}}</div>
+          </div>
+          <button ng-click="player.removeFromQueue($index)">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/angular@1.8.3/angular.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/angular-route@1.8.3/angular-route.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="app/app.js"></script>
+  <script src="app/services/AuthService.js"></script>
+  <script src="app/services/SongService.js"></script>
+  <script src="app/services/PlaylistService.js"></script>
+  <script src="app/services/PlayerService.js"></script>
+  <script src="app/services/SocketService.js"></script>
+  <script src="app/services/AudiusService.js"></script>
+  <script src="app/controllers/MainController.js"></script>
+  <script src="app/controllers/LandingController.js"></script>
+  <script src="app/controllers/AuthController.js"></script>
+  <script src="app/controllers/HomeController.js"></script>
+  <script src="app/controllers/SearchController.js"></script>
+  <script src="app/controllers/LibraryController.js"></script>
+  <script src="app/controllers/UploadController.js"></script>
+  <script src="app/controllers/PlayerController.js"></script>
+  <script src="app/controllers/PlaylistController.js"></script>
+  <script src="service-worker.js"></script>
+</body>
+</html>

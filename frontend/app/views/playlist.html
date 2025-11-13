@@ -1,0 +1,41 @@
+<div class="playlist-container">
+  <div class="loading" ng-if="playlist.loading">Loading...</div>
+  
+  <div ng-if="!playlist.loading">
+    <div class="playlist-header">
+      <img ng-src="{{playlist.playlist.coverUrl}}" alt="{{playlist.playlist.title}}" class="playlist-cover">
+      <div class="playlist-info">
+        <h2 ng-if="!playlist.editing">{{playlist.playlist.title}}</h2>
+        <input type="text" 
+               ng-if="playlist.editing" 
+               ng-model="playlist.editTitle" 
+               ng-blur="playlist.updateTitle()"
+               class="edit-input">
+        <button ng-click="playlist.editing = true" ng-if="!playlist.editing">✏️</button>
+        <p>{{playlist.playlist.owner.username}} • {{playlist.playlist.songs.length}} songs</p>
+        <button ng-click="playlist.playAll()" class="btn-primary">Play All</button>
+      </div>
+    </div>
+    
+    <div class="song-list">
+      <div class="song-item" ng-repeat="song in playlist.playlist.songs">
+        <div class="song-number">{{$index + 1}}</div>
+        <img ng-src="{{song.coverUrl}}" alt="{{song.title}}">
+        <div class="song-details">
+          <h4>{{song.title}}</h4>
+          <p>{{song.artist}}</p>
+        </div>
+        <div class="song-album">{{song.album}}</div>
+        <div class="song-duration">{{song.duration | number:0}}s</div>
+        <div class="song-actions">
+          <button ng-click="playlist.playSong(song, $index)" class="btn-play">▶</button>
+          <button ng-click="playlist.removeSong(song)" class="btn-delete">✕</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="empty-playlist" ng-if="playlist.playlist.songs.length === 0">
+      <p>This playlist is empty. Add some songs!</p>
+    </div>
+  </div>
+</div>

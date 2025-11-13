@@ -1,0 +1,17 @@
+{
+  "name": "tunify-frontend",
+  "version": "1.0.0",
+  "description": "AngularJS frontend for Tunify music streaming platform",
+  "scripts": {
+    "start": "http-server -p 8080 -c-1",
+    "build": "echo 'No build step required for AngularJS'"
+  },
+  "dependencies": {
+    "angular": "^1.8.3",
+    "angular-route": "^1.8.3",
+    "socket.io-client": "^4.7.2"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
