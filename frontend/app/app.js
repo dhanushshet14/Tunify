@@ -1,5 +1,31 @@
 angular.module('spotifyApp', ['ngRoute'])
-  .config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
+  .config(['$routeProvider', '$locationProvider', '$httpProvider', function($routeProvider, $locationProvider, $httpProvider) {
+    
+    // Add HTTP interceptor to attach Authorization header to all requests
+    $httpProvider.interceptors.push(['$q', '$location', function($q, $location) {
+      return {
+        request: function(config) {
+          // Attach token to all API requests
+          var token = localStorage.getItem('token');
+          if (token && config.url.indexOf('/api/') !== -1) {
+            config.headers = config.headers || {};
+            config.headers.Authorization = 'Bearer ' + token;
+            console.log('🔐 Attaching token to request:', config.url);
+          }
+          return config;
+        },
+        responseError: function(rejection) {
+          // Handle 401 errors
+          if (rejection.status === 401) {
+            console.error('❌ 401 Unauthorized - Redirecting to login');
+            localStorage.removeItem('token');
+            $location.path('/login');
+          }
+          return $q.reject(rejection);
+        }
+      };
+    }]);
+    
     $routeProvider
       .when('/', {
         templateUrl: 'app/views/landing.html',
@@ -57,14 +83,36 @@ angular.module('spotifyApp', ['ngRoute'])
       });
   }])
   .run(['$rootScope', '$location', 'AuthService', function($rootScope, $location, AuthService) {
-    $rootScope.$on('$routeChangeStart', function(event, next) {
-      if (next && next.requireAuth && !AuthService.isAuthenticated()) {
-        event.preventDefault();
-        $location.path('/login');
-      } else if (next && next.$$route && next.$$route.originalPath === '/' && AuthService.isAuthenticated()) {
+    console.log('🚀 App initialized');
+    
+    $rootScope.$on('$routeChangeStart', function(event, next, current) {
+      console.log('📍 Route change:', current ? current.$$route.originalPath : 'initial', '→', next ? next.$$route.originalPath : 'unknown');
+      
+      // Check if route requires authentication
+      if (next && next.$$route && next.$$route.requireAuth) {
+        if (!AuthService.isAuthenticated()) {
+          console.warn('⚠️ Auth required but not authenticated - redirecting to login');
+          event.preventDefault();
+          $location.path('/login');
+        } else {
+          console.log('✅ Auth check passed');
+        }
+      }
+      
+      // Redirect authenticated users from landing page to home
+      if (next && next.$$route && next.$$route.originalPath === '/' && AuthService.isAuthenticated()) {
+        console.log('✅ Authenticated user on landing - redirecting to home');
         event.preventDefault();
         $location.path('/home');
       }
+    });
+    
+    $rootScope.$on('$routeChangeError', function(event, current, previous, rejection) {
+      console.error('❌ Route change error:', rejection);
+    });
+    
+    $rootScope.$on('$routeChangeSuccess', function(event, current, previous) {
+      console.log('✅ Route changed successfully');
     });
   }])
   .constant('API_URL', 'http://localhost:5000/api');
