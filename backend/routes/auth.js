@@ -136,7 +136,7 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
-// Get user profile with stats
+// Get user profile with stats (optimized with parallel queries)
 router.get('/profile', auth, async (req, res) => {
   console.log('\n👤 ========== PROFILE REQUEST ==========');
   console.log('User ID:', req.userId);
@@ -146,25 +146,27 @@ router.get('/profile', auth, async (req, res) => {
     const Song = require('../models/Song');
     const Playlist = require('../models/Playlist');
     
-    console.log('🔍 Fetching user data...');
-    const user = await User.findById(req.userId).select('-passwordHash');
+    console.log('🔍 Fetching user data and stats in parallel...');
+    
+    // Execute all queries in parallel for better performance
+    const [user, songsCount, playlistsCount] = await Promise.all([
+      User.findById(req.userId).select('-passwordHash').lean(),
+      Song.countDocuments({ uploadedBy: req.userId }),
+      Playlist.countDocuments({ owner: req.userId })
+    ]);
+    
     if (!user) {
       console.error('❌ User not found:', req.userId);
       console.error('=======================================\n');
       return res.status(404).json({ error: 'User not found' });
     }
     console.log('✅ User found:', user.username);
-
-    console.log('📊 Fetching user stats...');
-    // Get user's songs count
-    const songsCount = await Song.countDocuments({ uploadedBy: req.userId });
-    
-    // Get user's playlists count
-    const playlistsCount = await Playlist.countDocuments({ owner: req.userId });
-    
     console.log('Stats - Songs:', songsCount, 'Playlists:', playlistsCount);
     console.log('✅ Profile data ready');
     console.log('=======================================\n');
+
+    // Set cache headers
+    res.set('Cache-Control', 'private, max-age=60'); // Cache for 1 minute
 
     res.json({
       id: user._id,

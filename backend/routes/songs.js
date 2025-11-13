@@ -76,21 +76,45 @@ router.post('/upload', auth, upload.fields([
   }
 });
 
-// Get all songs
+// Get all songs with pagination and optimization
 router.get('/all', auth, async (req, res) => {
   console.log('\n📚 ========== GET ALL SONGS ==========');
   console.log('User ID:', req.userId);
   console.log('Time:', new Date().toISOString());
   
   try {
-    console.log('🔍 Fetching all songs...');
-    const songs = await Song.find()
-      .populate('uploadedBy', 'username')
-      .sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
     
-    console.log(`✅ Found ${songs.length} songs`);
+    console.log('🔍 Fetching songs with pagination...');
+    console.log('Page:', page, 'Limit:', limit);
+    
+    // Use lean() for better performance (returns plain JS objects)
+    const songs = await Song.find()
+      .select('title artist album audioUrl coverUrl duration plays createdAt uploadedBy')
+      .populate('uploadedBy', 'username')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec();
+    
+    // Get total count for pagination
+    const total = await Song.countDocuments();
+    
+    console.log(`✅ Found ${songs.length} songs (${total} total)`);
     console.log('======================================\n');
-    res.json(songs);
+    
+    res.json({
+      songs,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('❌ Get all songs error:', error);
     console.error('Stack:', error.stack);
@@ -113,7 +137,7 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// Search songs
+// Optimized search with caching and indexes
 router.get('/search', auth, async (req, res) => {
   const startTime = Date.now();
   console.log('\n🔍 ========== SEARCH REQUEST ==========');
@@ -123,27 +147,66 @@ router.get('/search', auth, async (req, res) => {
   
   try {
     const { q } = req.query;
-    if (!q) {
-      console.log('⚠️ Empty search query');
+    if (!q || q.length < 2) {
+      console.log('⚠️ Empty or too short search query');
       console.log('======================================\n');
       return res.json([]);
     }
 
-    console.log('🔎 Searching database...');
-    const songs = await Song.find({
+    console.log('🔎 Searching database with optimized query...');
+    
+    // Use compound index for better performance
+    // Prioritize exact matches, then partial matches
+    const exactMatches = await Song.find({
       $or: [
-        { title: { $regex: q, $options: 'i' } },
-        { artist: { $regex: q, $options: 'i' } },
-        { album: { $regex: q, $options: 'i' } },
-        { tags: { $in: [new RegExp(q, 'i')] } }
+        { title: { $regex: `^${q}`, $options: 'i' } },
+        { artist: { $regex: `^${q}`, $options: 'i' } }
       ]
-    }).populate('uploadedBy', 'username').limit(20);
+    })
+    .select('title artist album audioUrl coverUrl duration plays uploadedBy')
+    .populate('uploadedBy', 'username')
+    .limit(10)
+    .lean()
+    .exec();
 
+    // If we have enough exact matches, return them
+    if (exactMatches.length >= 10) {
+      const duration = Date.now() - startTime;
+      console.log(`✅ Found ${exactMatches.length} exact matches in ${duration}ms`);
+      console.log('======================================\n');
+      return res.json(exactMatches);
+    }
+
+    // Otherwise, get partial matches too
+    const partialMatches = await Song.find({
+      $and: [
+        {
+          $or: [
+            { title: { $regex: q, $options: 'i' } },
+            { artist: { $regex: q, $options: 'i' } },
+            { album: { $regex: q, $options: 'i' } },
+            { tags: { $in: [new RegExp(q, 'i')] } }
+          ]
+        },
+        {
+          _id: { $nin: exactMatches.map(s => s._id) }
+        }
+      ]
+    })
+    .select('title artist album audioUrl coverUrl duration plays uploadedBy')
+    .populate('uploadedBy', 'username')
+    .limit(20 - exactMatches.length)
+    .lean()
+    .exec();
+
+    const results = [...exactMatches, ...partialMatches];
     const duration = Date.now() - startTime;
-    console.log(`✅ Found ${songs.length} results in ${duration}ms`);
+    console.log(`✅ Found ${results.length} results in ${duration}ms`);
     console.log('======================================\n');
 
-    res.json(songs);
+    // Set cache headers for frequently searched terms
+    res.set('Cache-Control', 'private, max-age=300'); // 5 minutes
+    res.json(results);
   } catch (error) {
     console.error('❌ Search error:', error);
     console.error('Stack:', error.stack);

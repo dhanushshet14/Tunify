@@ -3,6 +3,9 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 
+// Optimized chunk size for streaming (256KB)
+const CHUNK_SIZE = 256 * 1024;
+
 // Stream audio with full range support for smooth seeking
 router.get('/:filename', (req, res) => {
   const startTime = Date.now();
@@ -46,27 +49,37 @@ router.get('/:filename', (req, res) => {
       // Parse range header
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      
+      // Optimize chunk size for better streaming performance
+      let end = parts[1] ? parseInt(parts[1], 10) : Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
+      
+      // Ensure we don't exceed file size
+      end = Math.min(end, fileSize - 1);
       const chunksize = (end - start) + 1;
 
-      console.log(`📦 Range request: ${start}-${end} (${chunksize} bytes)`);
+      console.log(`📦 Optimized range request: ${start}-${end} (${chunksize} bytes)`);
 
-      // Create read stream with range
-      const file = fs.createReadStream(filePath, { start, end });
+      // Create read stream with optimized buffer size
+      const file = fs.createReadStream(filePath, { 
+        start, 
+        end,
+        highWaterMark: 64 * 1024 // 64KB buffer for smooth streaming
+      });
 
-      // Set headers for partial content
+      // Set headers for partial content with aggressive caching
       const head = {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunksize,
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=31536000, immutable', // 1 year cache
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length'
+        'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
+        'X-Content-Type-Options': 'nosniff'
       };
 
       res.writeHead(206, head);
-      console.log('✅ Streaming partial content (206)');
+      console.log('✅ Streaming partial content (206) with optimized chunks');
       
       // Handle stream errors
       file.on('error', (err) => {

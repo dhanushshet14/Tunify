@@ -26,9 +26,19 @@ app.use(cors({
 // Handle preflight requests
 app.options('*', cors());
 
+// Add compression for API responses (before other middleware)
+const compressionMiddleware = require('./middleware/compression');
+app.use(compressionMiddleware);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Static files with caching
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  maxAge: '1y', // Cache for 1 year
+  immutable: true,
+  etag: true
+}));
 
 // Add comprehensive request logger
 const logger = require('./middleware/logger');

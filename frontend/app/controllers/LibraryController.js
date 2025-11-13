@@ -7,11 +7,19 @@ angular.module('spotifyApp')
       self.showCreateModal = false;
       self.newPlaylistTitle = '';
 
+      // Optimized playlist loading with error handling
       self.loadPlaylists = function() {
-        PlaylistService.getMyPlaylists().then(function(playlists) {
-          self.playlists = playlists;
-          self.loading = false;
-        });
+        self.loading = true;
+        PlaylistService.getMyPlaylists()
+          .then(function(playlists) {
+            self.playlists = playlists;
+            self.loading = false;
+          })
+          .catch(function(err) {
+            console.error('Error loading playlists:', err);
+            self.playlists = [];
+            self.loading = false;
+          });
       };
 
       self.openPlaylist = function(playlistId) {

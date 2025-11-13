@@ -9,6 +9,9 @@ angular.module('spotifyApp')
       self.activeTab = 'all'; // 'all', 'local', 'audius'
       var searchTimeout;
 
+      // Optimized search with 300ms debounce and result caching
+      var searchCache = {};
+      
       self.search = function() {
         if (searchTimeout) {
           $timeout.cancel(searchTimeout);
@@ -17,30 +20,63 @@ angular.module('spotifyApp')
         if (!self.query || self.query.length < 2) {
           self.localResults = [];
           self.audiusResults = [];
+          self.searching = false;
+          return;
+        }
+
+        // Check cache first
+        var cacheKey = self.query.toLowerCase();
+        if (searchCache[cacheKey]) {
+          console.log('📦 Using cached results for:', cacheKey);
+          self.localResults = searchCache[cacheKey].local;
+          self.audiusResults = searchCache[cacheKey].audius;
+          self.searching = false;
           return;
         }
 
         self.searching = true;
         
         searchTimeout = $timeout(function() {
+          var currentQuery = self.query;
+          
           // Search local songs
-          SongService.searchSongs(self.query).then(function(songs) {
-            self.localResults = songs;
+          SongService.searchSongs(currentQuery).then(function(songs) {
+            // Only update if query hasn't changed
+            if (currentQuery === self.query) {
+              self.localResults = songs;
+              
+              // Cache results
+              if (!searchCache[cacheKey]) {
+                searchCache[cacheKey] = { local: songs, audius: [] };
+              } else {
+                searchCache[cacheKey].local = songs;
+              }
+            }
           }).catch(function(err) {
             console.error('Local search error:', err);
             self.localResults = [];
           });
 
           // Search Audius
-          AudiusService.searchTracks(self.query, 20).then(function(tracks) {
-            self.audiusResults = tracks;
-            self.searching = false;
+          AudiusService.searchTracks(currentQuery, 20).then(function(tracks) {
+            // Only update if query hasn't changed
+            if (currentQuery === self.query) {
+              self.audiusResults = tracks;
+              self.searching = false;
+              
+              // Cache results
+              if (!searchCache[cacheKey]) {
+                searchCache[cacheKey] = { local: [], audius: tracks };
+              } else {
+                searchCache[cacheKey].audius = tracks;
+              }
+            }
           }).catch(function(err) {
             console.error('Audius search error:', err);
             self.audiusResults = [];
             self.searching = false;
           });
-        }, 400); // 400ms debounce
+        }, 300); // Optimized to 300ms debounce
       };
 
       self.getAllResults = function() {

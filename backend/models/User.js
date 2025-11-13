@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for performance
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ createdAt: -1 });
+
 userSchema.methods.comparePassword = async function(password) {
   return bcrypt.compare(password, this.passwordHash);
 };

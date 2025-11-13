@@ -37,6 +37,11 @@ const playlistSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for performance
+playlistSchema.index({ owner: 1, createdAt: -1 }); // User's playlists
+playlistSchema.index({ public: 1, createdAt: -1 }); // Public playlists
+playlistSchema.index({ title: 'text' }); // Text search
+
 playlistSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
