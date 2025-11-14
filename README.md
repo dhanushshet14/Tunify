@@ -40,14 +40,38 @@
 
 The platform integrates with the **Audius API** to provide access to 50+ trending tracks, while also allowing users to upload and manage their own music library.
 
+### How It Works
+
+**Frontend (AngularJS):**
+- Single Page Application (SPA) with client-side routing
+- Communicates with backend via REST API
+- Real-time updates using Socket.IO
+- Responsive design that works on all devices
+
+**Backend (Node.js + Express):**
+- RESTful API for all operations
+- JWT-based authentication for secure access
+- File upload handling for music and cover images
+- Audio streaming with range request support
+
+**Database (MongoDB Atlas):**
+- Cloud-hosted NoSQL database
+- Stores user accounts, songs, and playlists
+- No local database installation required
+
+**External API (Audius):**
+- Provides 50+ trending tracks for streaming
+- High-quality audio without preview limitations
+
 ### Why Tunify?
 
 - 🎵 **Stream Real Music**: Access 50+ trending tracks from Audius
 - 🎨 **Beautiful UI**: Spotify-inspired card design with smooth animations
 - 📱 **Fully Responsive**: Works seamlessly on desktop, tablet, and mobile
-- ☁️ **Cloud-Based**: MongoDB Atlas for reliable data storage
+- ☁️ **Cloud-Based**: MongoDB Atlas for reliable data storage (no local DB needed)
 - 🔐 **Secure**: JWT authentication with bcrypt password hashing
 - 🎧 **Feature-Rich**: Playlists, queue management, search, and more
+- 🚀 **Easy Setup**: No complex configuration, just clone and run
 
 ---
 
@@ -161,75 +185,165 @@ Create, edit, and manage playlists with real-time collaboration support.
 
 ---
 
-## 🚀 Installation
+## 🚀 Installation & Setup
 
 ### Prerequisites
 
 Before you begin, ensure you have the following installed:
 - **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
-- **MongoDB Atlas Account** - [Sign Up](https://www.mongodb.com/cloud/atlas)
 - **npm** (comes with Node.js)
+- **Git** - [Download](https://git-scm.com/)
+- **MongoDB Atlas Account** (Free) - [Sign Up](https://www.mongodb.com/cloud/atlas)
 
-### Quick Start
+### Step-by-Step Installation Guide
 
-1. **Clone the repository**
+#### 1. Clone the Repository
+
 ```bash
-git clone https://github.com/yourusername/tunify.git
-cd tunify
+git clone https://github.com/dhanushshet14/Tunify.git
+cd Tunify
 ```
 
-2. **Install dependencies**
-```bash
-# Install backend dependencies
-npm install
+#### 2. Set Up MongoDB Atlas (Cloud Database)
 
-# Install frontend dependencies
+**Why MongoDB Atlas?** This project uses MongoDB Atlas as a cloud database, so you don't need to install MongoDB locally.
+
+1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and create a free account
+2. Create a new cluster (choose the free M0 tier)
+3. Wait for the cluster to be created (takes 3-5 minutes)
+4. Click "Database Access" in the left sidebar:
+   - Click "Add New Database User"
+   - Choose "Password" authentication
+   - Set a username and password (remember these!)
+   - Set "Database User Privileges" to "Read and write to any database"
+   - Click "Add User"
+5. Click "Network Access" in the left sidebar:
+   - Click "Add IP Address"
+   - Click "Allow Access from Anywhere" (adds 0.0.0.0/0)
+   - Click "Confirm"
+6. Click "Database" in the left sidebar:
+   - Click "Connect" on your cluster
+   - Choose "Connect your application"
+   - Copy the connection string (looks like: `mongodb+srv://username:<password>@cluster0.xxxxx.mongodb.net/`)
+   - Replace `<password>` with your actual password
+   - Add `tunify` as the database name before the `?` in the URL
+
+Your final connection string should look like:
+```
+mongodb+srv://username:yourpassword@cluster0.xxxxx.mongodb.net/tunify?retryWrites=true&w=majority
+```
+
+#### 3. Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```bash
+# Windows
+copy .env.example .env
+
+# Linux/Mac
+cp .env.example .env
+```
+
+Edit the `.env` file with your configuration:
+
+```env
+PORT=5000
+MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/tunify?retryWrites=true&w=majority
+JWT_SECRET=your_secure_random_secret_key_change_this_in_production
+NODE_ENV=development
+FRONTEND_URL=http://localhost:8080
+```
+
+**Important:** Replace the `MONGODB_URI` with your actual MongoDB Atlas connection string from Step 2.
+
+#### 4. Install Dependencies
+
+Install backend dependencies:
+```bash
+npm install
+```
+
+Install frontend dependencies:
+```bash
 cd frontend
 npm install
 cd ..
 ```
 
-3. **Configure environment variables**
-```bash
-# Copy the example env file
-cp .env.example .env
+#### 5. Run the Application
 
-# Edit .env with your configuration
-# Update MONGODB_URI with your MongoDB Atlas connection string
-# Update JWT_SECRET with a secure random string
+You need to run both the backend and frontend servers.
+
+**Option A: Using Two Terminals (Recommended)**
+
+Terminal 1 - Backend Server:
+```bash
+npm run dev
 ```
 
-4. **Start MongoDB Atlas**
-- Create a MongoDB Atlas account
-- Create a cluster
-- Create a database user
-- Whitelist your IP address (or use 0.0.0.0/0 for development)
-- Copy your connection string to `.env`
-
-5. **Start the application**
+Terminal 2 - Frontend Server:
 ```bash
-# Terminal 1 - Start backend
-npm run dev
-
-# Terminal 2 - Start frontend
 cd frontend
 npm start
 ```
 
-6. **Open your browser**
+**Option B: Using Windows Batch File**
+
+```bash
+START.bat
+```
+
+This will automatically open two command windows for backend and frontend.
+
+#### 6. Access the Application
+
+Open your browser and navigate to:
 ```
 http://localhost:8080
 ```
 
-### Automated Installation (Windows)
+**Important:** If you see `ERR_BLOCKED_BY_CLIENT` errors:
+- Open the app in Incognito/Private mode (Ctrl+Shift+N in Chrome)
+- OR disable browser extensions (ad blockers) temporarily
 
-```bash
-# Run the automated installer
-INSTALL.bat
+### Verify Installation
 
-# Start the application
-START.bat
-```
+You should see:
+- Backend running on `http://localhost:5000`
+- Frontend running on `http://localhost:8080`
+- MongoDB connection successful message in the backend terminal
+- Landing page with "Sign Up" and "Login" buttons
+
+### Quick Test
+
+1. Click "Sign Up Free"
+2. Create an account with username, email, and password
+3. You'll be redirected to the home page
+4. Browse trending tracks from Audius API
+5. Click play on any track to start streaming
+
+### Troubleshooting Installation
+
+**Problem: `npm install` fails**
+- Solution: Delete `node_modules` folder and `package-lock.json`, then run `npm install` again
+
+**Problem: MongoDB connection error**
+- Solution: Double-check your connection string in `.env` file
+- Ensure your IP is whitelisted in MongoDB Atlas Network Access
+- Verify database user credentials are correct
+
+**Problem: Port already in use**
+- Solution: Kill the process using the port:
+  ```bash
+  # Windows
+  netstat -ano | findstr :5000
+  taskkill /PID <process_id> /F
+  ```
+
+**Problem: Frontend not loading**
+- Solution: Make sure you're in the `frontend` directory when running `npm start`
+- Check if port 8080 is available
 
 ---
 
@@ -605,14 +719,72 @@ tunify/
 
 ### Running in Development Mode
 
+The backend uses `nodemon` for auto-reload on file changes:
+
 ```bash
-# Backend with auto-reload
+# Backend with auto-reload (watches for file changes)
 npm run dev
 
-# Frontend
+# Frontend (serves static files)
 cd frontend
 npm start
 ```
+
+### Project Architecture
+
+**Backend Structure:**
+```
+backend/
+├── middleware/
+│   └── auth.js          # JWT token verification
+├── models/
+│   ├── User.js          # User schema (username, email, password)
+│   ├── Song.js          # Song schema (title, artist, file paths)
+│   └── Playlist.js      # Playlist schema (title, songs array)
+├── routes/
+│   ├── auth.js          # POST /signup, /login, GET /me
+│   ├── songs.js         # POST /upload, GET /all, /search
+│   ├── playlists.js     # CRUD operations for playlists
+│   └── stream.js        # GET /stream/:filename (audio streaming)
+└── server.js            # Express app setup, MongoDB connection
+```
+
+**Frontend Structure:**
+```
+frontend/
+├── app/
+│   ├── controllers/     # Handle user interactions
+│   ├── services/        # API calls and business logic
+│   ├── views/           # HTML templates
+│   └── app.js           # AngularJS config and routing
+├── styles/
+│   └── main.css         # All styling (Spotify-inspired)
+└── index.html           # Main entry point
+```
+
+### Key Technologies Explained
+
+**AngularJS (Frontend):**
+- Two-way data binding for reactive UI
+- Dependency injection for services
+- Client-side routing with `ngRoute`
+- Controllers handle view logic, Services handle data
+
+**Express (Backend):**
+- Middleware-based request handling
+- RESTful API design
+- JWT middleware protects routes
+- Multer handles file uploads
+
+**MongoDB + Mongoose:**
+- Schema-based data modeling
+- Async/await for database operations
+- Automatic validation and type casting
+
+**Socket.IO:**
+- Real-time bidirectional communication
+- Used for live playlist updates
+- WebSocket with fallback to polling
 
 ### Code Style
 
@@ -623,18 +795,16 @@ npm start
 
 ### Adding New Features
 
-1. Create feature branch
+1. Create feature branch: `git checkout -b feature/your-feature`
 2. Implement feature
 3. Test thoroughly
 4. Update documentation
 5. Submit pull request
 
-### Testing
+### API Testing
 
-#### Manual Testing
-See `TESTING_GUIDE.md` for comprehensive test cases.
+Test the API endpoints using curl or Postman:
 
-#### API Testing
 ```bash
 # Health check
 curl http://localhost:5000/api/health
@@ -643,6 +813,21 @@ curl http://localhost:5000/api/health
 curl -X POST http://localhost:5000/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{"username":"test","email":"test@example.com","password":"password123"}'
+
+# Test login
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}'
+```
+
+### Environment Variables Explained
+
+```env
+PORT=5000                    # Backend server port
+MONGODB_URI=mongodb+srv://... # MongoDB Atlas connection string
+JWT_SECRET=random_string     # Secret key for JWT token signing
+NODE_ENV=development         # Environment (development/production)
+FRONTEND_URL=http://...      # Frontend URL for CORS
 ```
 
 ---
@@ -790,13 +975,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Contact
 
-**Project Maintainer**: Your Name
+**Project Maintainer**: Dhanush Shet
 
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
-- Website: [tunify.com](https://tunify.com)
-
-**Project Link**: [https://github.com/yourusername/tunify](https://github.com/yourusername/tunify)
+- GitHub: [@dhanushshet14](https://github.com/dhanushshet14)
+- Project Link: [https://github.com/dhanushshet14/Tunify](https://github.com/dhanushshet14/Tunify)
 
 ---
 
